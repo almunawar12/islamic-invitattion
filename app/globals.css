@@ -24,6 +24,13 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+
+    /* Custom Islamic Blue Theme */
+    --islamic-primary: #094471;
+    --islamic-primary-light: #0d5a8f;
+    --islamic-primary-dark: #063354;
+    --islamic-secondary: #1e7bb8;
+    --islamic-accent: #fbbf24;
   }
 
   .dark {
@@ -58,31 +65,41 @@
   }
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar with Islamic blue theme */
 ::-webkit-scrollbar {
   width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(9, 68, 113, 0.1);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(9, 68, 113, 0.3);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(9, 68, 113, 0.5);
 }
 
 /* Ensure proper font loading */
 html {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Fix for potential hydration issues */
 .no-js {
   display: none;
+}
+
+/* Custom Islamic gradient backgrounds */
+.bg-islamic-gradient {
+  background: linear-gradient(135deg, #094471 0%, #0d5a8f 50%, #1e7bb8 100%);
+}
+
+.bg-islamic-gradient-dark {
+  background: linear-gradient(135deg, #063354 0%, #094471 50%, #0d5a8f 100%);
 }

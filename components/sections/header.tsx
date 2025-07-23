@@ -160,7 +160,7 @@ export default function Header({ guestName, onShare }: HeaderProps) {
         transition={{ delay: 0.8 }}
         className="text-center mb-8"
       >
-        <Card className="bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-yellow-400/30">
+        <Card className="bg-white/10 backdrop-blur-md border-white/20">
           <CardContent className="p-6">
             <div className="space-y-4">
               <div className="text-3xl">🤝</div>

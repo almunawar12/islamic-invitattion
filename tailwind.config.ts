@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss"
+import type { Config } from "tailwindcss";
 
 const config: Config = {
   darkMode: ["class"],
@@ -53,6 +53,23 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Custom Islamic Blue Theme Colors
+        islamic: {
+          50: "#f0f7ff",
+          100: "#e0efff",
+          200: "#b9dfff",
+          300: "#7cc8ff",
+          400: "#36aeff",
+          500: "#0c95f0",
+          600: "#0076cd",
+          700: "#005ea6",
+          800: "#094471", // Main color
+          900: "#063354",
+          950: "#041f33",
+        },
+        "islamic-primary": "#094471",
+        "islamic-secondary": "#1e7bb8",
+        "islamic-accent": "#fbbf24",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -73,9 +90,15 @@ const config: Config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      backgroundImage: {
+        "islamic-gradient":
+          "linear-gradient(135deg, #094471 0%, #0d5a8f 50%, #1e7bb8 100%)",
+        "islamic-gradient-dark":
+          "linear-gradient(135deg, #063354 0%, #094471 50%, #0d5a8f 100%)",
+      },
     },
   },
   plugins: [require("tailwindcss-animate")],
-} satisfies Config
+} satisfies Config;
 
-export default config
+export default config;
