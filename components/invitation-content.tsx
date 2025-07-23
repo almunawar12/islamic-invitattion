@@ -17,6 +17,7 @@ import IslamicMessage from "@/components/sections/islamic-message";
 import RSVPSection from "@/components/sections/rsvp-section";
 import Footer from "@/components/sections/footer";
 import BottomNavigation from "@/components/sections/bottom-navigation";
+import MusicPlayer from "@/components/audio/music-player";
 
 interface InvitationContentProps {
   guestName?: string;
@@ -164,6 +165,9 @@ export default function InvitationContent({
 
   return (
     <div className="min-h-screen bg-islamic-gradient relative overflow-hidden">
+      {/* Music Player - Auto-play when invitation is opened */}
+      <MusicPlayer autoPlay={true} />
+
       {/* Confetti Effect */}
       <AnimatePresence>
         {showConfetti && (
