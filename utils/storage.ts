@@ -27,24 +27,40 @@ export const getUserIdentifier = (): string => {
 // Local Storage Functions (for caching and offline support)
 export const saveToStorage = (data: RSVPEntry[]) => {
   if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    try {
+      const serializedData = JSON.stringify(
+        data.map((entry) => ({
+          ...entry,
+          timestamp: entry.timestamp.toISOString(),
+        }))
+      );
+      localStorage.setItem(STORAGE_KEY, serializedData);
+      console.log("Data saved to localStorage:", data.length, "entries");
+    } catch (error) {
+      console.error("Error saving to localStorage:", error);
+    }
   }
 };
 
 export const loadFromStorage = (): RSVPEntry[] => {
   if (typeof window !== "undefined") {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
         const parsed = JSON.parse(stored);
-        return parsed.map((entry: any) => ({
+        const entries = parsed.map((entry: any) => ({
           ...entry,
           timestamp: new Date(entry.timestamp),
         }));
-      } catch (error) {
-        console.error("Error parsing stored RSVP data:", error);
-        return [];
+        console.log(
+          "Data loaded from localStorage:",
+          entries.length,
+          "entries"
+        );
+        return entries;
       }
+    } catch (error) {
+      console.error("Error parsing stored RSVP data:", error);
     }
   }
   return [];
@@ -52,45 +68,51 @@ export const loadFromStorage = (): RSVPEntry[] => {
 
 export const saveCurrentUserToStorage = (data: RSVPEntry | null) => {
   if (typeof window !== "undefined") {
-    if (data) {
-      localStorage.setItem(
-        CURRENT_USER_KEY,
-        JSON.stringify({
-          ...data,
-          timestamp: data.timestamp.toISOString(),
-        })
-      );
-    } else {
-      localStorage.removeItem(CURRENT_USER_KEY);
+    try {
+      if (data) {
+        localStorage.setItem(
+          CURRENT_USER_KEY,
+          JSON.stringify({
+            ...data,
+            timestamp: data.timestamp.toISOString(),
+          })
+        );
+        console.log("Current user saved to localStorage:", data.name);
+      } else {
+        localStorage.removeItem(CURRENT_USER_KEY);
+        console.log("Current user removed from localStorage");
+      }
+    } catch (error) {
+      console.error("Error saving current user to localStorage:", error);
     }
   }
 };
 
 export const loadCurrentUserFromStorage = (): RSVPEntry | null => {
   if (typeof window !== "undefined") {
-    const stored = localStorage.getItem(CURRENT_USER_KEY);
-    if (stored) {
-      try {
+    try {
+      const stored = localStorage.getItem(CURRENT_USER_KEY);
+      if (stored) {
         const parsed = JSON.parse(stored);
-        return {
+        const user = {
           ...parsed,
           timestamp: new Date(parsed.timestamp),
         };
-      } catch (error) {
-        console.error("Error parsing stored current user data:", error);
-        return null;
+        console.log("Current user loaded from localStorage:", user.name);
+        return user;
       }
+    } catch (error) {
+      console.error("Error parsing stored current user data:", error);
     }
   }
   return null;
 };
 
-// Server API functions
-export const saveToServer = async (
-  entries: RSVPEntry[],
-  currentUser?: RSVPEntry | null
-): Promise<boolean> => {
+// Server API functions with better error handling
+export const saveToServer = async (entries: RSVPEntry[]): Promise<boolean> => {
   try {
+    console.log("Saving to server:", entries.length, "entries");
+
     const response = await fetch("/api/rsvp", {
       method: "POST",
       headers: {
@@ -101,16 +123,17 @@ export const saveToServer = async (
           ...entry,
           timestamp: entry.timestamp.toISOString(),
         })),
-        user: currentUser
-          ? {
-              ...currentUser,
-              timestamp: currentUser.timestamp.toISOString(),
-            }
-          : null,
       }),
     });
 
+    if (!response.ok) {
+      throw new Error(
+        `Server responded with ${response.status}: ${response.statusText}`
+      );
+    }
+
     const result = await response.json();
+    console.log("Server save result:", result);
     return result.success;
   } catch (error) {
     console.error("Error saving to server:", error);
@@ -120,40 +143,53 @@ export const saveToServer = async (
 
 export const loadFromServer = async (): Promise<RSVPEntry[]> => {
   try {
+    console.log("Loading from server...");
+
     const response = await fetch("/api/rsvp", {
       method: "GET",
-      cache: "no-store", // Always get fresh data
+      cache: "no-store",
       headers: {
         "Cache-Control": "no-cache",
       },
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      return data.entries.map((entry: any) => ({
-        ...entry,
-        timestamp: new Date(entry.timestamp),
-      }));
+    if (!response.ok) {
+      throw new Error(
+        `Server responded with ${response.status}: ${response.statusText}`
+      );
     }
+
+    const data = await response.json();
+    const entries = data.entries.map((entry: any) => ({
+      ...entry,
+      timestamp: new Date(entry.timestamp),
+    }));
+
+    console.log("Server load result:", entries.length, "entries");
+    return entries;
   } catch (error) {
     console.error("Error loading from server:", error);
+    return [];
   }
-  return [];
 };
 
-// Main hybrid functions
+// Main hybrid functions with improved error handling
 export const hybridSave = async (
   entries: RSVPEntry[],
   currentUser: RSVPEntry | null
 ): Promise<boolean> => {
-  // Save to localStorage immediately for instant feedback
+  console.log("Starting hybrid save...");
+
+  // Always save to localStorage first for immediate feedback
   saveToStorage(entries);
   saveCurrentUserToStorage(currentUser);
 
-  // Save to server (shared across all browsers)
-  const serverSuccess = await saveToServer(entries, currentUser);
+  // Try to save to server
+  const serverSuccess = await saveToServer(entries);
 
-  if (!serverSuccess) {
+  if (serverSuccess) {
+    console.log("Hybrid save successful");
+  } else {
     console.warn("Server save failed, data saved locally only");
   }
 
@@ -164,18 +200,27 @@ export const hybridLoad = async (): Promise<{
   entries: RSVPEntry[];
   currentUser: RSVPEntry | null;
 }> => {
+  console.log("Starting hybrid load...");
+
   let entries: RSVPEntry[] = [];
   let currentUser: RSVPEntry | null = null;
 
   try {
-    // Always try to load from server first to get shared data
+    // Try to load from server first
     const serverEntries = await loadFromServer();
-    entries = serverEntries;
 
-    // Cache server data to localStorage for offline access
-    saveToStorage(entries);
+    if (serverEntries.length > 0) {
+      console.log("Using server data");
+      entries = serverEntries;
+      // Cache server data to localStorage
+      saveToStorage(entries);
+    } else {
+      console.log("Server data empty, trying localStorage");
+      // Fallback to localStorage
+      entries = loadFromStorage();
+    }
 
-    // Check if current user exists in the shared data
+    // Find current user
     const userId = getUserIdentifier();
     currentUser = entries.find((entry) => entry.id === userId) || null;
 
@@ -190,14 +235,36 @@ export const hybridLoad = async (): Promise<{
                 localCurrentUser.name.toLowerCase().trim() &&
               entry.angkatan === localCurrentUser.angkatan
           ) || null;
+
+        // Update ID if found
+        if (currentUser && currentUser.id !== userId) {
+          currentUser.id = userId;
+          const updatedEntries = entries.map((entry) =>
+            entry.name.toLowerCase().trim() ===
+              localCurrentUser.name.toLowerCase().trim() &&
+            entry.angkatan === localCurrentUser.angkatan
+              ? currentUser!
+              : entry
+          );
+          entries = updatedEntries;
+          // Save updated entries
+          await saveToServer(entries);
+          saveToStorage(entries);
+        }
       }
     }
 
+    console.log(
+      "Hybrid load completed:",
+      entries.length,
+      "entries, current user:",
+      currentUser?.name || "none"
+    );
     return { entries, currentUser };
   } catch (error) {
-    console.warn("Server load failed, using localStorage:", error);
+    console.error("Error in hybrid load:", error);
 
-    // Fallback to localStorage (offline mode)
+    // Final fallback to localStorage only
     entries = loadFromStorage();
     currentUser = loadCurrentUserFromStorage();
 
@@ -207,6 +274,8 @@ export const hybridLoad = async (): Promise<{
 
 // Clear all data
 export const clearAllRSVPData = async () => {
+  console.log("Clearing all RSVP data...");
+
   if (typeof window !== "undefined") {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(CURRENT_USER_KEY);
@@ -214,7 +283,8 @@ export const clearAllRSVPData = async () => {
   }
 
   try {
-    await saveToServer([], null);
+    await saveToServer([]);
+    console.log("All data cleared successfully");
   } catch (error) {
     console.warn("Could not clear server data:", error);
   }

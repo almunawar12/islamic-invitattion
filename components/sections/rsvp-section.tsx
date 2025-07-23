@@ -9,6 +9,7 @@ import {
   WifiOff,
   RefreshCw,
   AlertCircle,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import RSVPForm from "@/components/rsvp/rsvp-form";
@@ -21,7 +22,7 @@ import { hybridSave, hybridLoad, getUserIdentifier } from "@/utils/storage";
 
 export default function RSVPSection() {
   const [rsvpStatus, setRsvpStatus] = useState<
-    "attending" | "not-attending" | "pending"
+    "pending" | "attending" | "not-attending"
   >("pending");
   const [showRSVPForm, setShowRSVPForm] = useState(false);
   const [rsvpEntries, setRsvpEntries] = useState<RSVPEntry[]>([]);
@@ -34,6 +35,7 @@ export default function RSVPSection() {
   const [syncStatus, setSyncStatus] = useState<
     "synced" | "syncing" | "error" | "offline"
   >("synced");
+  const [retryCount, setRetryCount] = useState(0);
 
   const handleRSVP = (status: "attending" | "not-attending") => {
     setRsvpStatus(status);
@@ -46,15 +48,13 @@ export default function RSVPSection() {
     angkatan: string;
   }) => {
     setSyncStatus("syncing");
+    setRetryCount(0);
 
     const userIdentifier = getUserIdentifier();
-    if (rsvpStatus === "pending") {
-      throw new Error("Cannot submit RSVP with status 'pending'");
-    }
     const newEntry: RSVPEntry = {
       id: userIdentifier,
       ...formData,
-      status: rsvpStatus as "attending" | "not-attending",
+      status: rsvpStatus === "attending" ? "attending" : "not-attending",
       timestamp: new Date(),
     };
 
@@ -76,21 +76,47 @@ export default function RSVPSection() {
     setCurrentUserRSVP(newEntry);
     setShowRSVPForm(false);
 
-    // Save to server (this will be shared across all browsers)
-    try {
-      const success = await hybridSave(updatedEntries, newEntry);
-      if (success) {
-        setSyncStatus("synced");
-        setLastSync(new Date());
+    // Save to server with retry logic
+    let success = false;
+    let attempts = 0;
+    const maxAttempts = 3;
 
-        // Refresh data to ensure we have the latest from server
-        await refreshData();
-      } else {
-        setSyncStatus("error");
+    while (!success && attempts < maxAttempts) {
+      attempts++;
+      console.log(`Save attempt ${attempts}/${maxAttempts}`);
+
+      try {
+        success = await hybridSave(updatedEntries, newEntry);
+
+        if (success) {
+          setSyncStatus("synced");
+          setLastSync(new Date());
+          console.log("RSVP saved successfully");
+
+          // Refresh data to ensure consistency
+          setTimeout(() => refreshData(), 1000);
+          break;
+        } else {
+          console.warn(`Save attempt ${attempts} failed`);
+          if (attempts < maxAttempts) {
+            // Wait before retry
+            await new Promise((resolve) =>
+              setTimeout(resolve, 1000 * attempts)
+            );
+          }
+        }
+      } catch (error) {
+        console.error(`Save attempt ${attempts} error:`, error);
+        if (attempts < maxAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempts));
+        }
       }
-    } catch (error) {
-      console.error("Error saving RSVP:", error);
+    }
+
+    if (!success) {
       setSyncStatus("error");
+      setRetryCount(attempts);
+      console.error("All save attempts failed");
     }
   };
 
@@ -108,8 +134,6 @@ export default function RSVPSection() {
         if (success) {
           setSyncStatus("synced");
           setLastSync(new Date());
-
-          // Refresh data to ensure we have the latest from server
           await refreshData();
         } else {
           setSyncStatus("error");
@@ -126,61 +150,35 @@ export default function RSVPSection() {
   };
 
   const refreshData = async () => {
+    console.log("Refreshing RSVP data...");
     setSyncStatus("syncing");
 
     try {
-      const { entries } = await hybridLoad();
+      const { entries, currentUser } = await hybridLoad();
 
-      // Always load ALL entries from server (shared data)
       setRsvpEntries(entries);
 
-      // Check if current user has RSVP'd by checking their user ID
-      const userIdentifier = getUserIdentifier();
-      const userRSVP = entries.find((entry) => entry.id === userIdentifier);
-
-      if (userRSVP) {
-        setCurrentUserRSVP(userRSVP);
-        setRsvpStatus(userRSVP.status);
+      if (currentUser) {
+        setCurrentUserRSVP(currentUser);
+        setRsvpStatus(currentUser.status);
       } else {
-        // Check if user has RSVP'd with different ID (by name from localStorage)
-        const localCurrentUser = JSON.parse(
-          localStorage.getItem("islamic-invitation-current-user") || "null"
-        );
-        if (localCurrentUser) {
-          const existingRSVP = entries.find(
-            (entry) =>
-              entry.name.toLowerCase().trim() ===
-                localCurrentUser.name.toLowerCase().trim() &&
-              entry.angkatan === localCurrentUser.angkatan
-          );
-
-          if (existingRSVP) {
-            // Update the existing RSVP with current user ID
-            existingRSVP.id = userIdentifier;
-            const updatedEntries = entries.map((entry) =>
-              entry.name.toLowerCase().trim() ===
-                localCurrentUser.name.toLowerCase().trim() &&
-              entry.angkatan === localCurrentUser.angkatan
-                ? existingRSVP
-                : entry
-            );
-
-            setRsvpEntries(updatedEntries);
-            setCurrentUserRSVP(existingRSVP);
-            setRsvpStatus(existingRSVP.status);
-
-            // Save updated entries back to server
-            await hybridSave(updatedEntries, existingRSVP);
-          }
-        }
+        setCurrentUserRSVP(null);
+        setRsvpStatus("pending");
       }
 
       setSyncStatus("synced");
       setLastSync(new Date());
+      setRetryCount(0);
+      console.log("Data refreshed successfully");
     } catch (error) {
       console.error("Error refreshing data:", error);
       setSyncStatus("error");
     }
+  };
+
+  const retrySync = async () => {
+    console.log("Retrying sync...");
+    await refreshData();
   };
 
   // Load data on component mount
@@ -194,13 +192,13 @@ export default function RSVPSection() {
     loadData();
   }, []);
 
-  // Auto-refresh every 30 seconds to get latest data
+  // Auto-refresh every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       if (isOnline && syncStatus !== "syncing") {
         refreshData();
       }
-    }, 30000); // 30 seconds
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [isOnline, syncStatus]);
@@ -239,7 +237,7 @@ export default function RSVPSection() {
       case "syncing":
         return <RefreshCw className="animate-spin text-blue-400" size={16} />;
       case "synced":
-        return <Wifi className="text-green-400" size={16} />;
+        return <CheckCircle className="text-green-400" size={16} />;
       case "error":
         return <AlertCircle className="text-red-400" size={16} />;
       case "offline":
@@ -256,7 +254,7 @@ export default function RSVPSection() {
       case "synced":
         return "Tersinkronisasi";
       case "error":
-        return "Gagal sinkronisasi";
+        return `Gagal sinkronisasi (${retryCount} percobaan)`;
       case "offline":
         return "Offline";
       default:
@@ -345,7 +343,7 @@ export default function RSVPSection() {
             <RSVPButtons onRSVP={handleRSVP} />
           )}
 
-          {/* RSVP List - Always show all entries */}
+          {/* RSVP List */}
           <RSVPList
             rsvpEntries={rsvpEntries}
             currentUserRSVP={currentUserRSVP}
@@ -354,10 +352,19 @@ export default function RSVPSection() {
           {/* Status messages */}
           {syncStatus === "error" && (
             <div className="mt-4 p-3 bg-red-600/20 border border-red-600/30 rounded-lg">
-              <p className="text-red-300 text-sm">
-                ⚠️ Gagal menyinkronkan data. Data tersimpan lokal, coba refresh
-                untuk sinkronisasi ulang.
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-red-300 text-sm">
+                  ⚠️ Gagal menyinkronkan data setelah {retryCount} percobaan.
+                  Data tersimpan lokal.
+                </p>
+                <Button
+                  onClick={retrySync}
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs"
+                >
+                  Coba Lagi
+                </Button>
+              </div>
             </div>
           )}
 
@@ -366,6 +373,15 @@ export default function RSVPSection() {
               <p className="text-orange-300 text-sm">
                 📱 Anda sedang offline. Data akan disinkronkan ketika koneksi
                 kembali.
+              </p>
+            </div>
+          )}
+
+          {syncStatus === "synced" && rsvpEntries.length > 0 && (
+            <div className="mt-4 p-3 bg-green-600/20 border border-green-600/30 rounded-lg">
+              <p className="text-green-300 text-sm">
+                ✅ Data tersinkronisasi dengan server. Semua tamu dapat melihat
+                daftar yang sama.
               </p>
             </div>
           )}
