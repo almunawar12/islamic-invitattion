@@ -24,22 +24,7 @@ export const getUserIdentifier = (): string => {
   return generateUserIdentifier();
 };
 
-// Find user RSVP by name and angkatan (for cross-browser recognition)
-export const findUserRSVPByDetails = (
-  entries: RSVPEntry[],
-  name: string,
-  angkatan: string
-): RSVPEntry | null => {
-  return (
-    entries.find(
-      (entry) =>
-        entry.name.toLowerCase().trim() === name.toLowerCase().trim() &&
-        entry.angkatan === angkatan
-    ) || null
-  );
-};
-
-// Local Storage Functions
+// Local Storage Functions (for caching and offline support)
 export const saveToStorage = (data: RSVPEntry[]) => {
   if (typeof window !== "undefined") {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -137,7 +122,10 @@ export const loadFromServer = async (): Promise<RSVPEntry[]> => {
   try {
     const response = await fetch("/api/rsvp", {
       method: "GET",
-      cache: "no-store",
+      cache: "no-store", // Always get fresh data
+      headers: {
+        "Cache-Control": "no-cache",
+      },
     });
 
     if (response.ok) {
@@ -153,37 +141,6 @@ export const loadFromServer = async (): Promise<RSVPEntry[]> => {
   return [];
 };
 
-// Check if user exists by name and angkatan
-export const checkUserExists = async (
-  name: string,
-  angkatan: string
-): Promise<RSVPEntry | null> => {
-  try {
-    const response = await fetch(
-      `/api/rsvp/check-user?name=${encodeURIComponent(
-        name
-      )}&angkatan=${encodeURIComponent(angkatan)}`,
-      {
-        method: "GET",
-        cache: "no-store",
-      }
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.exists && data.user) {
-        return {
-          ...data.user,
-          timestamp: new Date(data.user.timestamp),
-        };
-      }
-    }
-  } catch (error) {
-    console.error("Error checking user existence:", error);
-  }
-  return null;
-};
-
 // Main hybrid functions
 export const hybridSave = async (
   entries: RSVPEntry[],
@@ -193,7 +150,7 @@ export const hybridSave = async (
   saveToStorage(entries);
   saveCurrentUserToStorage(currentUser);
 
-  // Try to save to server
+  // Save to server (shared across all browsers)
   const serverSuccess = await saveToServer(entries, currentUser);
 
   if (!serverSuccess) {
@@ -211,60 +168,36 @@ export const hybridLoad = async (): Promise<{
   let currentUser: RSVPEntry | null = null;
 
   try {
-    // Load all entries from server
+    // Always try to load from server first to get shared data
     const serverEntries = await loadFromServer();
     entries = serverEntries;
 
-    // Sync server data to localStorage
+    // Cache server data to localStorage for offline access
     saveToStorage(entries);
 
-    // Check if current user exists in server data by ID first
+    // Check if current user exists in the shared data
     const userId = getUserIdentifier();
-    let userFromServer: RSVPEntry | undefined = entries.find(
-      (entry) => entry.id === userId
-    );
+    currentUser = entries.find((entry) => entry.id === userId) || null;
 
-    // If not found by ID, check localStorage for current user data
-    if (!userFromServer) {
+    // If not found by ID, check by localStorage current user data
+    if (!currentUser) {
       const localCurrentUser = loadCurrentUserFromStorage();
       if (localCurrentUser) {
-        // Try to find by name and angkatan
-        userFromServer =
-          findUserRSVPByDetails(
-            entries,
-            localCurrentUser.name,
-            localCurrentUser.angkatan
-          ) || undefined;
-
-        if (userFromServer) {
-          // Update the user ID to match current browser
-          userFromServer.id = userId;
-          // Update the entry in the list
-          const entryIndex = entries.findIndex(
+        currentUser =
+          entries.find(
             (entry) =>
               entry.name.toLowerCase().trim() ===
                 localCurrentUser.name.toLowerCase().trim() &&
               entry.angkatan === localCurrentUser.angkatan
-          );
-          if (entryIndex !== -1) {
-            entries[entryIndex] = userFromServer;
-            // Save updated entries back to server
-            await saveToServer(entries, userFromServer);
-          }
-        }
+          ) || null;
       }
-    }
-
-    if (userFromServer) {
-      currentUser = userFromServer;
-      saveCurrentUserToStorage(currentUser);
     }
 
     return { entries, currentUser };
   } catch (error) {
     console.warn("Server load failed, using localStorage:", error);
 
-    // Fallback to localStorage
+    // Fallback to localStorage (offline mode)
     entries = loadFromStorage();
     currentUser = loadCurrentUserFromStorage();
 
