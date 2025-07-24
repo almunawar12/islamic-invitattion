@@ -100,7 +100,7 @@ export default function Header({ guestName, onShare }: HeaderProps) {
                 <p className="flex items-center justify-center gap-2">
                   <span className="text-yellow-300">📅</span>
                   <strong>Sabtu, 26 Juli 2025</strong>
-                  <span className="text-sm">(1 Muharram 1446 H)</span>
+                  <span className="text-sm">(1 Safar 1446 H)</span>
                 </p>
                 <p className="flex items-center justify-center gap-2">
                   <span className="text-yellow-300">🕐</span>
@@ -118,8 +118,10 @@ export default function Header({ guestName, onShare }: HeaderProps) {
               <div className="bg-gradient-to-r from-yellow-400/20 to-green-400/20 rounded-lg p-4 mt-6">
                 <p className="text-white font-medium leading-relaxed">
                   Acara ini akan diisi dengan{" "}
-                  <strong className="text-yellow-300">ceramah agama</strong>{" "}
-                  tentang makna hijrah dalam kehidupan modern,
+                  <strong className="text-yellow-300">
+                    pengajian orang tua
+                  </strong>{" "}
+                  tentang "dengan semangat berhijrah kuatkan ukhuwah",
                   <strong className="text-yellow-300">
                     {" "}
                     sharing session
