@@ -26,7 +26,7 @@ export default function SpeakerSection() {
             <div className="text-center">
               <div className="relative mx-auto w-32 h-32 mb-4">
                 <img
-                  src="/placeholder.svg?height=128&width=128"
+                  src="/image/image.png"
                   alt="Kyai Asep Abdul Ghafur, S.Pd.I"
                   className="w-full h-full rounded-full object-cover border-4 border-yellow-300"
                 />
@@ -54,7 +54,7 @@ export default function SpeakerSection() {
             <div className="text-center">
               <div className="relative mx-auto w-32 h-32 mb-4">
                 <img
-                  src="/placeholder.svg?height=128&width=128"
+                  src="/image/image2.jpg"
                   alt="KH. Badru Munir Gojali, M.Ag"
                   className="w-full h-full rounded-full object-cover border-4 border-yellow-300"
                 />
@@ -67,11 +67,11 @@ export default function SpeakerSection() {
               </h4>
               <p className="text-yellow-300 font-semibold mb-2">Mubaligh</p>
               <p className="text-white/80 text-sm mb-3">
-                Ketua MWC Nahdlatul Ulama Banyuresmi
+                Kasi Pd Pontren Kemenag Kab. Garut
               </p>
               <div className="bg-white/5 rounded-lg p-3">
                 <p className="text-white/90 text-sm italic">
-                  "Peran Mubaligh dalam Masyarakat"
+                  "Dengan Semangat berhijrah kuatkan ukhuwah"
                 </p>
               </div>
             </div>
