@@ -34,7 +34,7 @@ export default function Header({ guestName, onShare }: HeaderProps) {
         </motion.div>
 
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-          🌙 1 Muharram 1446 H 🌙
+          🌙 1 Muharram 1447 H 🌙
         </h1>
         <p className="text-xl md:text-2xl text-yellow-300 font-semibold mb-2">
           Tahun Baru Islam
@@ -86,7 +86,7 @@ export default function Header({ guestName, onShare }: HeaderProps) {
 
               <div className="bg-white/5 rounded-lg p-4 my-4">
                 <h3 className="text-xl font-bold text-yellow-300 mb-2">
-                  🌙 PERINGATAN 1 MUHARRAM 1446 H 🌙
+                  🌙 PERINGATAN 1 MUHARRAM 1447 H 🌙
                 </h3>
                 <p className="text-lg font-semibold text-white mb-1">
                   "Menyambut Tahun Baru Islam dengan Penuh Berkah"
@@ -100,7 +100,7 @@ export default function Header({ guestName, onShare }: HeaderProps) {
                 <p className="flex items-center justify-center gap-2">
                   <span className="text-yellow-300">📅</span>
                   <strong>Sabtu, 26 Juli 2025</strong>
-                  <span className="text-sm">(1 Safar 1446 H)</span>
+                  <span className="text-sm">(1 Safar 1447 H)</span>
                 </p>
                 <p className="flex items-center justify-center gap-2">
                   <span className="text-yellow-300">🕐</span>
@@ -172,7 +172,7 @@ export default function Header({ guestName, onShare }: HeaderProps) {
               <p className="text-white/90">
                 Jangan lewatkan kesempatan emas ini untuk berkumpul, berbagi
                 ilmu, dan mempererat persaudaraan dalam menyambut tahun baru
-                Hijriah 1446 H.
+                Hijriah 1447 H.
               </p>
               <div className="flex flex-wrap justify-center gap-2 text-sm">
                 <span className="bg-green-600/30 text-green-300 px-3 py-1 rounded-full">

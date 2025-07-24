@@ -136,7 +136,7 @@ export default function InvitationContent({
                 >
                   <h2 className="text-xl font-bold text-white">Undangan</h2>
                   <h3 className="text-lg text-islamic-accent font-semibold">
-                    Peringatan 1 Muharram 1446 H
+                    Peringatan 1 Muharram 1447 H
                   </h3>
                   <p className="text-white/90 font-medium">
                     & Reuni Akbar IKASAN ke-3

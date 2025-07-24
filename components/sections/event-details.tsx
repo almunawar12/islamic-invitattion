@@ -24,7 +24,7 @@ export default function EventDetails() {
                 <div>
                   <p className="font-semibold">Tanggal</p>
                   <p>Sabtu, 26 Juli 2025</p>
-                  <p className="text-sm text-white/80">1 Muharram 1446 H</p>
+                  <p className="text-sm text-white/80">1 Muharram 1447 H</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
