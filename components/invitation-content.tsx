@@ -104,7 +104,14 @@ export default function InvitationContent({
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.3 }}
                 >
-                  <div className="text-6xl mb-4">🌙</div>
+                  {/* buat ukuran gambar nya jadi lebih kecil */}
+                  <div className="text-6xl mb-4">
+                    <img
+                      src="/image/logo3.png"
+                      alt=""
+                      className="w-20 mx-auto"
+                    />
+                  </div>
                   <h1 className="text-2xl font-bold text-white mb-2">
                     بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم
                   </h1>
